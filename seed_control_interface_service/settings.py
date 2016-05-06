@@ -143,8 +143,6 @@ HOOK_DELIVERER = 'seed_control_interface_service.tasks.deliver_hook_wrapper'
 HOOK_AUTH_TOKEN = os.environ.get('HOOK_AUTH_TOKEN', 'REPLACEME')
 
 # Celery configuration options
-# CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
-# CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
 
 BROKER_URL = os.environ.get('BROKER_URL', 'redis://localhost:6379/0')
 
