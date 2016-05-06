@@ -7,7 +7,8 @@ from celery import Celery
 from django.conf import settings
 
 # set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'seed_control_interface_service.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE',
+                      'seed_control_interface_service.settings')
 
 app = Celery('seed_control_interface_service')
 

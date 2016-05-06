@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User, Group
 from .models import Service, Status
 from rest_hooks.models import Hook
+from rest_framework import filters
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .serializers import (UserSerializer, GroupSerializer,
@@ -64,7 +65,9 @@ class StatusViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = Status.objects.all()
     serializer_class = StatusSerializer
+    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
     filter_fields = ('service', 'up',)
+    ordering_fields = ('created_at',)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user,
