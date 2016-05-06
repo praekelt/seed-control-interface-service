@@ -1,5 +1,6 @@
 import json
 import uuid
+import responses
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -8,6 +9,7 @@ from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
 from .models import Status, Service
+from .tasks import poll_service
 
 
 class APITestCase(TestCase):
@@ -51,7 +53,8 @@ class TestServicesApp(AuthenticatedAPITestCase):
             service_data = {
                 "name": "Test Service",
                 "url": "http://example.org",
-                "token": str(uuid.uuid4())
+                "token": str(uuid.uuid4()),
+                "up": True
             }
         service = Service.objects.create(**service_data)
         return service
@@ -175,3 +178,167 @@ class TestServicesApp(AuthenticatedAPITestCase):
         self.assertEqual(len(results), 2)  # two in filtered response
         # from different services
         self.assertNotEqual(results[0]["service"], results[1]["service"])
+
+    @responses.activate
+    def test_task_service_poll_404(self):
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/health',
+            body='<h1>404 File Not Found</h1>',
+            status=404, content_type='application/json',
+        )
+
+        # Execute
+        result = poll_service.apply_async(
+            kwargs={
+                "service_id": str(self.primary_service.id)
+            })
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Completed healthcheck for <Test Service>")
+        updated = Service.objects.get(id=str(self.primary_service.id))
+        self.assertEqual(updated.up, False)
+        status = Status.objects.last()
+        self.assertEqual(Status.objects.all().count(), 1)
+        self.assertEqual(status.result["error"],
+                         "No parseable response from service")
+
+    @responses.activate
+    def test_task_service_poll_down(self):
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/health',
+            json={
+                "up": False,
+                "result": {
+                    "database": "No connection could be made"
+                }
+            },
+            status=200, content_type='application/json',
+        )
+
+        # Execute
+        result = poll_service.apply_async(
+            kwargs={
+                "service_id": str(self.primary_service.id)
+            })
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Completed healthcheck for <Test Service>")
+        updated = Service.objects.get(id=str(self.primary_service.id))
+        self.assertEqual(updated.up, False)
+        status = Status.objects.last()
+        self.assertEqual(Status.objects.all().count(), 1)
+        self.assertEqual(status.up, False)
+        self.assertEqual(status.result["database"],
+                         "No connection could be made")
+
+    @responses.activate
+    def test_task_service_poll_up(self):
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/health',
+            json={
+                "up": True,
+                "result": {
+                    "database": "Response in <0.1> seconds"
+                }
+            },
+            status=200, content_type='application/json',
+        )
+
+        # Execute
+        result = poll_service.apply_async(
+            kwargs={
+                "service_id": str(self.primary_service.id)
+            })
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Completed healthcheck for <Test Service>")
+        updated = Service.objects.get(id=str(self.primary_service.id))
+        self.assertEqual(updated.up, True)
+        status = Status.objects.last()
+        self.assertEqual(Status.objects.all().count(), 1)
+        self.assertEqual(status.up, True)
+        self.assertEqual(status.result["database"],
+                         "Response in <0.1> seconds")
+
+    @responses.activate
+    def test_task_service_poll_down_then_up(self):
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/health',
+            json={
+                "up": False,
+                "result": {
+                    "database": "No connection could be made"
+                }
+            },
+            status=200, content_type='application/json',
+        )
+
+        # Execute
+        result = poll_service.apply_async(
+            kwargs={
+                "service_id": str(self.primary_service.id)
+            })
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Completed healthcheck for <Test Service>")
+        updated = Service.objects.get(id=str(self.primary_service.id))
+        self.assertEqual(updated.up, False)
+        status = Status.objects.last()
+        self.assertEqual(Status.objects.all().count(), 1)
+        self.assertEqual(status.up, False)
+        self.assertEqual(status.result["database"],
+                         "No connection could be made")
+
+        # DOWN CONFIRMED, GET IT UP.
+        responses.reset()
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/health',
+            json={
+                "up": True,
+                "result": {
+                    "database": "Response in <0.1> seconds"
+                }
+            },
+            status=200, content_type='application/json',
+        )
+
+        # Execute
+        result = poll_service.apply_async(
+            kwargs={
+                "service_id": str(self.primary_service.id)
+            })
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Completed healthcheck for <Test Service>")
+        updated = Service.objects.get(id=str(self.primary_service.id))
+        self.assertEqual(updated.up, True)
+        status = Status.objects.last()
+        self.assertEqual(Status.objects.all().count(), 2)
+        self.assertEqual(status.up, True)
+        self.assertEqual(status.result["database"],
+                         "Response in <0.1> seconds")
