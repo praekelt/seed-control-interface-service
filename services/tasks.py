@@ -1,31 +1,9 @@
 import json
-import requests
 import uuid
+import requests
 
-from celery.task import Task
-from celery.utils.log import get_task_logger
 from django.conf import settings
-
-
-logger = get_task_logger(__name__)
-
-
-class The_Incr(Task):
-
-    """
-    Task to incr something
-    """
-    name = "seed_control_interface_service.dashboards.tasks.the_incr"  # noqa
-
-    def run(self, anum, **kwargs):
-        """
-        Returns an incr'd number
-        """
-        l = self.get_logger(**kwargs)
-        l.info("Incrementing <%s>" % (anum,))
-        return int(anum)+1
-
-the_incr = The_Incr()
+from celery.task import Task
 
 
 class DeliverHook(Task):
