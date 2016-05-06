@@ -165,10 +165,10 @@ CELERY_ROUTES = {
     'celery.backend_cleanup': {
         'queue': 'mediumpriority',
     },
-    'seed_control_interface_service.tasks.deliver_hook_wrapper': {
+    'services.tasks.deliver_hook_wrapper': {
         'queue': 'priority',
     },
-    'seed_control_interface_service.tasks.poll_service': {
+    'services.tasks.poll_service': {
         'queue': 'priority',
     },
 }
