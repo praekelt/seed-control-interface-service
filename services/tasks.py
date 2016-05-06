@@ -80,15 +80,13 @@ class PollService(Task):
             status = self.get_health(service.url, service.token)
             try:
                 result = status.json()
-                print("Service is:")
-                print(result["up"])
                 service.up = result["up"]
+                service.save()
                 Status.objects.create(
                     service=service,
                     up=result["up"],
                     result=result["result"]
                 )
-                service.save()
                 l.info("Service <%s> up: <%s>" % (service.name, service.up))
             except json.decoder.JSONDecodeError:
                 # can't decode means there was not a valid response
