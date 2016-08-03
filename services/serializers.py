@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User, Group
-from .models import Service, Status
+from .models import Service, Status, UserServiceToken
 from rest_hooks.models import Hook
 from rest_framework import serializers
 
@@ -32,6 +32,14 @@ class StatusSerializer(serializers.ModelSerializer):
         model = Status
         read_only_fields = ('service', 'up', 'created_at')
         fields = ('id', 'service', 'up', 'created_at')
+
+
+class UserServiceTokenSerializer(serializers.ModelSerializer):
+    service = serializers.StringRelatedField(many=False)
+
+    class Meta:
+        model = UserServiceToken
+        fields = ('user_id', 'service', 'token', 'created_at', 'updated_at')
 
 
 class HookSerializer(serializers.ModelSerializer):

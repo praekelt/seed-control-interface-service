@@ -1,11 +1,12 @@
 from django.contrib.auth.models import User, Group
-from .models import Service, Status
+from .models import Service, Status, UserServiceToken
 from rest_hooks.models import Hook
 from rest_framework import filters
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .serializers import (UserSerializer, GroupSerializer,
-                          ServiceSerializer, StatusSerializer, HookSerializer)
+                          ServiceSerializer, StatusSerializer, HookSerializer,
+                          UserServiceTokenSerializer)
 
 
 class HookViewSet(viewsets.ModelViewSet):
@@ -75,3 +76,15 @@ class StatusViewSet(viewsets.ReadOnlyModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
+
+
+class UserServiceTokenViewSet(viewsets.ReadOnlyModelViewSet):
+
+    """
+    API endpoint that allows user service tokens to be viewed
+    """
+    permission_classes = (IsAuthenticated,)
+    queryset = UserServiceToken.objects.all()
+    serializer_class = UserServiceTokenSerializer
+    filter_backends = (filters.DjangoFilterBackend, )
+    filter_fields = ('service', 'user_id',)
