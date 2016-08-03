@@ -43,6 +43,11 @@ class UserServiceTokenSerializer(serializers.ModelSerializer):
                   'created_at', 'updated_at')
 
 
+class UserTokenRequestSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    email = serializers.EmailField()
+
+
 class HookSerializer(serializers.ModelSerializer):
 
     class Meta:
