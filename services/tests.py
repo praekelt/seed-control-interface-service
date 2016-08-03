@@ -71,6 +71,7 @@ class TestServicesApp(AuthenticatedAPITestCase):
     def make_user_service_token(self, user_id, service):
         user_service_token = {
             "user_id": user_id,
+            "email": "%s@example.org" % user_id,
             "service": service,
             "token": str(uuid.uuid4())
         }
@@ -188,7 +189,7 @@ class TestServicesApp(AuthenticatedAPITestCase):
         # from different services
         self.assertNotEqual(results[0]["service"], results[1]["service"])
 
-    def test_list_user_service_token_filtered(self):
+    def test_list_user_service_token_filtered_user_id(self):
         service2 = self.make_service(service_data={
             "name": "Service 2",
             "url": "http://2.example.org",
@@ -210,6 +211,29 @@ class TestServicesApp(AuthenticatedAPITestCase):
         self.assertEqual(len(results), 2)  # two in filtered response
         # from different services
         self.assertNotEqual(results[0]["service"], results[1]["service"])
+
+    def test_list_user_service_token_filtered_email(self):
+        service2 = self.make_service(service_data={
+            "name": "Service 2",
+            "url": "http://2.example.org",
+            "token": str(uuid.uuid4())
+        })
+        self.make_user_service_token(user_id=1, service=self.primary_service)
+        self.make_user_service_token(user_id=1, service=service2)
+        self.make_user_service_token(user_id=2, service=self.primary_service)
+
+        response = self.client.get('/api/v1/userservicetoken/',
+                                   {"email": "2@example.org"},
+                                   content_type='application/json')
+
+        self.assertEqual(response.status_code,
+                         status.HTTP_200_OK)
+
+        results = response.json()["results"]
+        self.assertEqual(UserServiceToken.objects.all().count(), 3)  # 3 in DB
+        self.assertEqual(len(results), 1)  # one in filtered response
+        # from different services
+        self.assertEqual(results[0]["email"], "2@example.org")
 
     @responses.activate
     def test_task_service_poll_404(self):

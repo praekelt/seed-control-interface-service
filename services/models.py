@@ -51,9 +51,11 @@ class UserServiceToken(models.Model):
 
     """
     User Service Token model, seed-auth-api user tokens from seed services
+    user_id is consistent from auth-api
     """
     service = models.ForeignKey(Service, related_name='service_users')
     user_id = models.IntegerField(null=False, blank=False)
+    email = models.CharField(max_length=30, null=False, blank=False)
     token = models.CharField(max_length=36, null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

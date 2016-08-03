@@ -87,4 +87,4 @@ class UserServiceTokenViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = UserServiceToken.objects.all()
     serializer_class = UserServiceTokenSerializer
     filter_backends = (filters.DjangoFilterBackend, )
-    filter_fields = ('service', 'user_id',)
+    filter_fields = ('service', 'user_id', 'email', )

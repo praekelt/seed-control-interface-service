@@ -39,7 +39,8 @@ class UserServiceTokenSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserServiceToken
-        fields = ('user_id', 'service', 'token', 'created_at', 'updated_at')
+        fields = ('user_id', 'email', 'service', 'token',
+                  'created_at', 'updated_at')
 
 
 class HookSerializer(serializers.ModelSerializer):
