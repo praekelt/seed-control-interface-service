@@ -114,7 +114,7 @@ poll_service = PollService()
 class GetUserToken(Task):
 
     """
-    Task to check the set the user tokens for a service
+    Task to check or set the user tokens for a service
     """
     name = "services.tasks.get_user_token"
 
