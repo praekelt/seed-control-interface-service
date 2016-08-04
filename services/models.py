@@ -44,3 +44,26 @@ class Status(models.Model):
 
     def __str__(self):  # __unicode__ on Python 2
         return str("Up status is %s at %s" % (self.up, self.created_at))
+
+
+@python_2_unicode_compatible
+class UserServiceToken(models.Model):
+
+    """
+    User Service Token model
+    Holds seed-auth-api user tokens from seed services for CLI to use
+    user_id is consistent in auth-api, email might change
+    """
+    service = models.ForeignKey(Service, related_name='service_users')
+    user_id = models.IntegerField(null=False, blank=False)
+    email = models.CharField(max_length=30, null=False, blank=False)
+    token = models.CharField(max_length=36, null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class meta:
+        unique_together = ['service', 'user_id']
+
+    def __str__(self):  # __unicode__ on Python 2
+        return str("%s for %s at %s" % (
+            self.token, self.user_id, self.service))

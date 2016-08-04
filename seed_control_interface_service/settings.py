@@ -157,7 +157,7 @@ CELERY_ALWAYS_EAGER = False
 
 # Tell Celery where to find the tasks
 CELERY_IMPORTS = (
-    'dashboards.tasks',
+    'services.tasks',
 )
 
 CELERY_CREATE_MISSING_QUEUES = True
@@ -165,11 +165,14 @@ CELERY_ROUTES = {
     'celery.backend_cleanup': {
         'queue': 'mediumpriority',
     },
-    'services.tasks.deliver_hook_wrapper': {
+    'services.tasks.DeliverHook': {
         'queue': 'priority',
     },
     'services.tasks.poll_service': {
         'queue': 'priority',
+    },
+    'services.tasks.get_user_token': {
+        'queue': 'mediumpriority',
     },
 }
 

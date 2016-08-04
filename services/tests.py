@@ -8,8 +8,8 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
-from .models import Status, Service
-from .tasks import poll_service
+from .models import Status, Service, UserServiceToken
+from .tasks import poll_service, get_user_token
 
 
 class APITestCase(TestCase):
@@ -67,6 +67,16 @@ class TestServicesApp(AuthenticatedAPITestCase):
             }
         status = Status.objects.create(**status_data)
         return status
+
+    def make_user_service_token(self, user_id, service):
+        user_service_token = {
+            "user_id": user_id,
+            "email": "%s@example.org" % user_id,
+            "service": service,
+            "token": str(uuid.uuid4())
+        }
+        token = UserServiceToken.objects.create(**user_service_token)
+        return token
 
     def test_login(self):
         request = self.client.post(
@@ -179,6 +189,52 @@ class TestServicesApp(AuthenticatedAPITestCase):
         # from different services
         self.assertNotEqual(results[0]["service"], results[1]["service"])
 
+    def test_list_user_service_token_filtered_user_id(self):
+        service2 = self.make_service(service_data={
+            "name": "Service 2",
+            "url": "http://2.example.org",
+            "token": str(uuid.uuid4())
+        })
+        self.make_user_service_token(user_id=1, service=self.primary_service)
+        self.make_user_service_token(user_id=1, service=service2)
+        self.make_user_service_token(user_id=2, service=self.primary_service)
+
+        response = self.client.get('/api/v1/userservicetoken/',
+                                   {"user_id": 1},
+                                   content_type='application/json')
+
+        self.assertEqual(response.status_code,
+                         status.HTTP_200_OK)
+
+        results = response.json()["results"]
+        self.assertEqual(UserServiceToken.objects.all().count(), 3)  # 3 in DB
+        self.assertEqual(len(results), 2)  # two in filtered response
+        # from different services
+        self.assertNotEqual(results[0]["service"], results[1]["service"])
+
+    def test_list_user_service_token_filtered_email(self):
+        service2 = self.make_service(service_data={
+            "name": "Service 2",
+            "url": "http://2.example.org",
+            "token": str(uuid.uuid4())
+        })
+        self.make_user_service_token(user_id=1, service=self.primary_service)
+        self.make_user_service_token(user_id=1, service=service2)
+        self.make_user_service_token(user_id=2, service=self.primary_service)
+
+        response = self.client.get('/api/v1/userservicetoken/',
+                                   {"email": "2@example.org"},
+                                   content_type='application/json')
+
+        self.assertEqual(response.status_code,
+                         status.HTTP_200_OK)
+
+        results = response.json()["results"]
+        self.assertEqual(UserServiceToken.objects.all().count(), 3)  # 3 in DB
+        self.assertEqual(len(results), 1)  # one in filtered response
+        # from different services
+        self.assertEqual(results[0]["email"], "2@example.org")
+
     @responses.activate
     def test_task_service_poll_404(self):
         # Setup
@@ -276,69 +332,121 @@ class TestServicesApp(AuthenticatedAPITestCase):
                          "Response in <0.1> seconds")
 
     @responses.activate
-    def test_task_service_poll_down_then_up(self):
+    def test_task_get_user_token_one_service(self):
         # Setup
         # mock identity lookup
         responses.add(
-            responses.GET,
-            'http://example.org/api/health',
-            json={
-                "up": False,
-                "result": {
-                    "database": "No connection could be made"
-                }
-            },
-            status=200, content_type='application/json',
+            responses.POST,
+            'http://example.org/api/v1/user/token/',
+            json={"token": "faketoken"},
+            status=201, content_type='application/json',
         )
 
         # Execute
-        result = poll_service.apply_async(
+        result = get_user_token.apply_async(
             kwargs={
-                "service_id": str(self.primary_service.id)
+                "service_id": str(self.primary_service.id),
+                "user_id": 5,
+                "email": "test@example.org"
             })
 
         # Check
         self.assertEqual(
             result.get(),
-            "Completed healthcheck for <Test Service>")
-        updated = Service.objects.get(id=str(self.primary_service.id))
-        self.assertEqual(updated.up, False)
-        status = Status.objects.last()
-        self.assertEqual(Status.objects.all().count(), 1)
-        self.assertEqual(status.up, False)
-        self.assertEqual(status.result["database"],
-                         "No connection could be made")
+            "Completed getting token for <test@example.org>")
+        tokens = UserServiceToken.objects.filter(user_id=5)
+        self.assertEqual(tokens.count(), 1)
+        self.assertEqual(tokens[0].token, "faketoken")
 
-        # DOWN CONFIRMED, GET IT UP.
-        responses.reset()
+    @responses.activate
+    def test_task_get_user_token_two_services(self):
         # Setup
+        service2 = self.make_service(service_data={
+            "name": "Service 2",
+            "url": "http://2.example.org",
+            "token": str(uuid.uuid4())
+        })
         # mock identity lookup
         responses.add(
-            responses.GET,
-            'http://example.org/api/health',
-            json={
-                "up": True,
-                "result": {
-                    "database": "Response in <0.1> seconds"
-                }
-            },
-            status=200, content_type='application/json',
+            responses.POST,
+            'http://example.org/api/v1/user/token/',
+            json={"token": "faketoken"},
+            status=201, content_type='application/json',
+        )
+        # mock other service lookup
+        responses.add(
+            responses.POST,
+            'http://2.example.org/api/v1/user/token/',
+            json={"token": "otherfaketoken"},
+            status=201, content_type='application/json',
         )
 
         # Execute
-        result = poll_service.apply_async(
+        result = get_user_token.apply_async(
             kwargs={
-                "service_id": str(self.primary_service.id)
+                "service_id": str(self.primary_service.id),
+                "user_id": 5,
+                "email": "test@example.org"
+            })
+
+        result2 = get_user_token.apply_async(
+            kwargs={
+                "service_id": str(service2.id),
+                "user_id": 5,
+                "email": "test@example.org"
             })
 
         # Check
         self.assertEqual(
             result.get(),
-            "Completed healthcheck for <Test Service>")
-        updated = Service.objects.get(id=str(self.primary_service.id))
-        self.assertEqual(updated.up, True)
-        status = Status.objects.last()
-        self.assertEqual(Status.objects.all().count(), 2)
-        self.assertEqual(status.up, True)
-        self.assertEqual(status.result["database"],
-                         "Response in <0.1> seconds")
+            "Completed getting token for <test@example.org>")
+        self.assertEqual(
+            result2.get(),
+            "Completed getting token for <test@example.org>")
+        tokens = UserServiceToken.objects.filter(user_id=5)
+        self.assertEqual(tokens.count(), 2)
+        self.assertEqual(tokens[0].token, "faketoken")
+        self.assertEqual(tokens[1].token, "otherfaketoken")
+
+    @responses.activate
+    def test_api_get_user_token_two_services(self):
+        # Setup
+        self.make_service(service_data={
+            "name": "Service 2",
+            "url": "http://2.example.org",
+            "token": str(uuid.uuid4())
+        })
+        # mock identity lookup
+        responses.add(
+            responses.POST,
+            'http://example.org/api/v1/user/token/',
+            json={"token": "fakertoken"},
+            status=201, content_type='application/json',
+        )
+        # mock other service lookup
+        responses.add(
+            responses.POST,
+            'http://2.example.org/api/v1/user/token/',
+            json={"token": "otherfakertoken"},
+            status=201, content_type='application/json',
+        )
+
+        # Execute
+        post_data = {
+            "user_id": 5,
+            "email": "test@example.org"
+        }
+        response = self.adminclient.post('/api/v1/userservicetoken/generate/',
+                                         json.dumps(post_data),
+                                         content_type='application/json')
+        results = response.json()
+
+        # Check
+        self.assertEqual(response.status_code,
+                         status.HTTP_201_CREATED)
+        self.assertEqual(results["user_service_token_initiated"], True)
+        self.assertEqual(results["count"], 2)
+        tokens = UserServiceToken.objects.filter(user_id=5)
+        self.assertEqual(tokens.count(), 2)
+        self.assertEqual(tokens[0].token, "fakertoken")
+        self.assertEqual(tokens[1].token, "otherfakertoken")

@@ -8,7 +8,7 @@ from celery.task import Task
 from celery.utils.log import get_task_logger
 from celery.exceptions import SoftTimeLimitExceeded
 
-from .models import Service, Status
+from .models import Service, Status, UserServiceToken
 
 
 logger = get_task_logger(__name__)
@@ -109,3 +109,59 @@ class PollService(Task):
                 exc_info=True)
 
 poll_service = PollService()
+
+
+class GetUserToken(Task):
+
+    """
+    Task to check or set the user tokens for a service
+    """
+    name = "services.tasks.get_user_token"
+
+    class FailedEventRequest(Exception):
+
+        """
+        The attempted task failed because of a non-200 HTTP return
+        code.
+        """
+
+    def create_token(self, url, token=None):
+        url = "%s/api/v1/user/token/" % (url, )
+        headers = {"Content-Type": "application/json"}
+        if token is not None:
+            headers["Authorization"] = "Token %s" % (token,)
+        r = requests.post(url, headers=headers)
+        return r
+
+    def run(self, service_id, user_id, email, **kwargs):
+        """
+        Create and Retrieve a token from remote service. Save to DB.
+        """
+        l = self.get_logger(**kwargs)
+
+        l.info("Loading Service for token creation")
+        try:
+            service = Service.objects.get(id=service_id)
+            l.info("Getting token for <%s> on <%s>" % (email, service.name))
+            response = self.create_token(service.url, service.token)
+            try:
+                result = response.json()
+                ust, created = UserServiceToken.objects.get_or_create(
+                    service=service, user_id=user_id, email=email)
+                ust.token = result["token"]
+                ust.save()
+                l.info("Token saved for <%s> on <%s>" % (email, service.name))
+            except json.decoder.JSONDecodeError:
+                # can't decode means there was not a valid response
+                l.info("Failed to parse response from <%s>" % (service.name))
+            return "Completed getting token for <%s>" % (email)
+        except ObjectDoesNotExist:
+            logger.error('Missing Service', exc_info=True)
+
+        except SoftTimeLimitExceeded:
+            logger.error(
+                'Soft time limit exceed processing getting service token \
+                 via Celery.',
+                exc_info=True)
+
+get_user_token = GetUserToken()
