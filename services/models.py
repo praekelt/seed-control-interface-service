@@ -50,8 +50,9 @@ class Status(models.Model):
 class UserServiceToken(models.Model):
 
     """
-    User Service Token model, seed-auth-api user tokens from seed services
-    user_id is consistent from auth-api
+    User Service Token model
+    Holds seed-auth-api user tokens from seed services for CLI to use
+    user_id is consistent in auth-api, email might change
     """
     service = models.ForeignKey(Service, related_name='service_users')
     user_id = models.IntegerField(null=False, blank=False)
