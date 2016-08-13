@@ -15,7 +15,7 @@ class Service(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=50, null=False, blank=False)
     url = models.CharField(max_length=255, null=False, blank=False)
-    token = models.CharField(max_length=36, null=False, blank=False)
+    token = models.CharField(max_length=40, null=False, blank=False)
     up = models.BooleanField(default=False)
     metadata = JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
