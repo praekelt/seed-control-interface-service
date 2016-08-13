@@ -60,7 +60,7 @@ class PollService(Task):
         """
 
     def get_health(self, url, token=None):
-        url = "%s/api/health" % (url, )
+        url = "%s/api/health/" % (url, )
         headers = {"Content-Type": "application/json"}
         if token is not None:
             headers["Authorization"] = "Token %s" % (token,)
