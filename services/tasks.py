@@ -88,7 +88,7 @@ class PollService(Task):
                     result=result["result"]
                 )
                 l.info("Service <%s> up: <%s>" % (service.name, service.up))
-            except json.decoder.JSONDecodeError:
+            except:
                 # can't decode means there was not a valid response
                 l.info("Failed to parse response from <%s>" % (service.name))
                 Status.objects.create(
@@ -151,7 +151,7 @@ class GetUserToken(Task):
                 ust.token = result["token"]
                 ust.save()
                 l.info("Token saved for <%s> on <%s>" % (email, service.name))
-            except json.decoder.JSONDecodeError:
+            except:
                 # can't decode means there was not a valid response
                 l.info("Failed to parse response from <%s>" % (service.name))
             return "Completed getting token for <%s>" % (email)
