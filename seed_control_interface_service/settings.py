@@ -175,6 +175,12 @@ CELERY_ROUTES = {
     'services.tasks.queue_poll_service': {
         'queue': 'priority',
     },
+    'services.tasks.service_metric_sync': {
+        'queue': 'mediumpriority',
+    },
+    'services.tasks.queue_service_metric_sync': {
+        'queue': 'mediumpriority',
+    },
     'services.tasks.get_user_token': {
         'queue': 'mediumpriority',
     },
