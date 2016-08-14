@@ -241,7 +241,7 @@ class TestServicesApp(AuthenticatedAPITestCase):
         # mock identity lookup
         responses.add(
             responses.GET,
-            'http://example.org/api/health',
+            'http://example.org/api/health/',
             body='<h1>404 File Not Found</h1>',
             status=404, content_type='application/json',
         )
@@ -269,7 +269,7 @@ class TestServicesApp(AuthenticatedAPITestCase):
         # mock identity lookup
         responses.add(
             responses.GET,
-            'http://example.org/api/health',
+            'http://example.org/api/health/',
             json={
                 "up": False,
                 "result": {
@@ -303,7 +303,7 @@ class TestServicesApp(AuthenticatedAPITestCase):
         # mock identity lookup
         responses.add(
             responses.GET,
-            'http://example.org/api/health',
+            'http://example.org/api/health/',
             json={
                 "up": True,
                 "result": {
