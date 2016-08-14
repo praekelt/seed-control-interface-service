@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
 from .models import Status, Service, UserServiceToken
-from .tasks import poll_service, get_user_token
+from .tasks import poll_service, get_user_token, queue_poll_service
 
 
 class APITestCase(TestCase):
@@ -323,6 +323,37 @@ class TestServicesApp(AuthenticatedAPITestCase):
         self.assertEqual(
             result.get(),
             "Completed healthcheck for <Test Service>")
+        updated = Service.objects.get(id=str(self.primary_service.id))
+        self.assertEqual(updated.up, True)
+        status = Status.objects.last()
+        self.assertEqual(Status.objects.all().count(), 1)
+        self.assertEqual(status.up, True)
+        self.assertEqual(status.result["database"],
+                         "Response in <0.1> seconds")
+
+    @responses.activate
+    def test_task_queue_service_poll(self):
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/health/',
+            json={
+                "up": True,
+                "result": {
+                    "database": "Response in <0.1> seconds"
+                }
+            },
+            status=200, content_type='application/json',
+        )
+
+        # Execute
+        result = queue_poll_service.apply_async()
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Queued <1> Service(s) for Polling")
         updated = Service.objects.get(id=str(self.primary_service.id))
         self.assertEqual(updated.up, True)
         status = Status.objects.last()

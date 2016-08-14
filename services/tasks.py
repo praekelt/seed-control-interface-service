@@ -45,6 +45,19 @@ def deliver_hook_wrapper(target, payload, instance, hook):
     DeliverHook.apply_async(kwargs=kwargs)
 
 
+class QueuePollService(Task):
+    def run(self):
+        """
+        Queues all services to be polled. Should be run via beat.
+        """
+        services = Service.objects.all()
+        for service in services:
+            poll_service.apply_async(kwargs={"service_id": str(service.id)})
+        return "Queued <%s> Service(s) for Polling" % services.count()
+
+queue_poll_service = QueuePollService()
+
+
 class PollService(Task):
 
     """
