@@ -14,4 +14,5 @@ urlpatterns = patterns(
     url(r'^api/token-auth/',
         'rest_framework.authtoken.views.obtain_auth_token'),
     url(r'^', include('services.urls')),
+    url(r'^', include('dashboards.urls')),
 )
