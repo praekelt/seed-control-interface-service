@@ -9,6 +9,7 @@ from celery.utils.log import get_task_logger
 from celery.exceptions import SoftTimeLimitExceeded
 
 from .models import Service, Status, UserServiceToken
+from dashboards.models import WidgetData
 
 
 logger = get_task_logger(__name__)
@@ -178,3 +179,74 @@ class GetUserToken(Task):
                 exc_info=True)
 
 get_user_token = GetUserToken()
+
+
+class QueueServiceMetricSync(Task):
+    def run(self):
+        """
+        Queues all services to be polled for metrics. Should be run via beat.
+        """
+        services = Service.objects.all()
+        for service in services:
+            service_metric_sync.apply_async(
+                kwargs={"service_id": str(service.id)})
+        return "Queued <%s> Service(s) for Metric Sync" % services.count()
+
+queue_service_metric_sync = QueueServiceMetricSync()
+
+
+class ServiceMetricSync(Task):
+
+    """
+    Task to get the available metrics of a service
+    """
+    name = "services.tasks.service_metric_sync"
+
+    class FailedEventRequest(Exception):
+
+        """
+        The attempted task failed because of a non-200 HTTP return
+        code.
+        """
+
+    def get_metrics(self, url, token=None):
+        url = "%s/api/metrics/" % (url, )
+        headers = {"Content-Type": "application/json"}
+        if token is not None:
+            headers["Authorization"] = "Token %s" % (token,)
+        r = requests.get(url, headers=headers)
+        return r
+
+    def run(self, service_id, **kwargs):
+        """
+        Retrieve a list of metrics. Ensure they are set as metric data sources.
+        """
+        l = self.get_logger(**kwargs)
+
+        l.info("Loading Service for metric sync")
+        try:
+            service = Service.objects.get(id=service_id)
+            l.info("Getting metrics for <%s>" % (service.name))
+            metrics = self.get_metrics(service.url, service.token)
+            result = metrics.json()
+            if "metrics_available" in result:
+                for key in result["metrics_available"]:
+                    check = WidgetData.objects.filter(service=service, key=key)
+                    if check.count() == 0:
+                        WidgetData.objects.create(
+                            service=service,
+                            key=key,
+                            title="TEMP - Pending update"
+                        )
+                        l.info("Add WidgetData for <%s>" % (key,))
+            return "Completed metric sync for <%s>" % (service.name)
+        except ObjectDoesNotExist:
+            logger.error('Missing Service', exc_info=True)
+
+        except SoftTimeLimitExceeded:
+            logger.error(
+                'Soft time limit exceed processing pull of service metrics \
+                 via Celery.',
+                exc_info=True)
+
+service_metric_sync = ServiceMetricSync()
