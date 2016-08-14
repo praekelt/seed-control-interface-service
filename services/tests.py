@@ -9,7 +9,9 @@ from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
 from .models import Status, Service, UserServiceToken
-from .tasks import poll_service, get_user_token
+from dashboards.models import WidgetData
+from .tasks import (poll_service, get_user_token, queue_poll_service,
+                    service_metric_sync, queue_service_metric_sync)
 
 
 class APITestCase(TestCase):
@@ -332,6 +334,37 @@ class TestServicesApp(AuthenticatedAPITestCase):
                          "Response in <0.1> seconds")
 
     @responses.activate
+    def test_task_queue_service_poll(self):
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/health/',
+            json={
+                "up": True,
+                "result": {
+                    "database": "Response in <0.1> seconds"
+                }
+            },
+            status=200, content_type='application/json',
+        )
+
+        # Execute
+        result = queue_poll_service.apply_async()
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Queued <1> Service(s) for Polling")
+        updated = Service.objects.get(id=str(self.primary_service.id))
+        self.assertEqual(updated.up, True)
+        status = Status.objects.last()
+        self.assertEqual(Status.objects.all().count(), 1)
+        self.assertEqual(status.up, True)
+        self.assertEqual(status.result["database"],
+                         "Response in <0.1> seconds")
+
+    @responses.activate
     def test_task_get_user_token_one_service(self):
         # Setup
         # mock identity lookup
@@ -450,3 +483,62 @@ class TestServicesApp(AuthenticatedAPITestCase):
         self.assertEqual(tokens.count(), 2)
         self.assertEqual(tokens[0].token, "fakertoken")
         self.assertEqual(tokens[1].token, "otherfakertoken")
+
+    @responses.activate
+    def test_task_service_metric_sync(self):
+        # Setup
+        # mock metrics lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/metrics/',
+            json={
+                "metrics_available": [
+                    "identities.created.sum",
+                    "identities.created.last"
+                ]
+            },
+            status=200, content_type='application/json',
+        )
+
+        # Execute
+        result = service_metric_sync.apply_async(
+            kwargs={
+                "service_id": str(self.primary_service.id)
+            })
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Completed metric sync for <Test Service>")
+        widget_data = WidgetData.objects.filter(service=self.primary_service)
+        self.assertEqual(widget_data.count(), 2)
+
+    @responses.activate
+    def test_task_queue_metric_poll(self):
+        # Setup
+        # mock metrics lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/metrics/',
+            json={
+                "metrics_available": [
+                    "identities.created.sum",
+                    "identities.created.last"
+                ]
+            },
+            status=200, content_type='application/json',
+        )
+
+        # Execute twice
+        result = queue_service_metric_sync.apply_async()
+        result2 = queue_service_metric_sync.apply_async()
+
+        # Check - should be two, despite being run twice
+        self.assertEqual(
+            result.get(),
+            "Queued <1> Service(s) for Metric Sync")
+        self.assertEqual(
+            result2.get(),
+            "Queued <1> Service(s) for Metric Sync")
+        widget_data = WidgetData.objects.filter(service=self.primary_service)
+        self.assertEqual(widget_data.count(), 2)
