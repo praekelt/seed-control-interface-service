@@ -139,12 +139,13 @@ class GetUserToken(Task):
         code.
         """
 
-    def create_token(self, url, token=None):
+    def create_token(self, url, email, token=None):
         url = "%s/api/v1/user/token/" % (url, )
         headers = {"Content-Type": "application/json"}
         if token is not None:
             headers["Authorization"] = "Token %s" % (token,)
-        r = requests.post(url, headers=headers)
+        data = {"email": email}
+        r = requests.post(url, headers=headers, data=json.dumps(data))
         return r
 
     def run(self, service_id, user_id, email, **kwargs):
@@ -157,7 +158,7 @@ class GetUserToken(Task):
         try:
             service = Service.objects.get(id=service_id)
             l.info("Getting token for <%s> on <%s>" % (email, service.name))
-            response = self.create_token(service.url, service.token)
+            response = self.create_token(service.url, email, service.token)
             try:
                 result = response.json()
                 ust, created = UserServiceToken.objects.get_or_create(
