@@ -25,6 +25,14 @@ class ServiceSerializer(serializers.ModelSerializer):
                   'created_at', 'created_by', 'updated_at', 'updated_by')
 
 
+class ServiceLimitedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Service
+        read_only_fields = ('name', 'url')
+        fields = ('name', 'url')
+
+
 class StatusSerializer(serializers.ModelSerializer):
     service = serializers.StringRelatedField(many=False)
 
@@ -35,7 +43,7 @@ class StatusSerializer(serializers.ModelSerializer):
 
 
 class UserServiceTokenSerializer(serializers.ModelSerializer):
-    service = serializers.StringRelatedField(many=False)
+    service = ServiceLimitedSerializer(many=False)
 
     class Meta:
         model = UserServiceToken
