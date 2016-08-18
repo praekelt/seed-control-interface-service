@@ -57,7 +57,7 @@ class UserServiceToken(models.Model):
     service = models.ForeignKey(Service, related_name='service_users')
     user_id = models.IntegerField(null=False, blank=False)
     email = models.CharField(max_length=30, null=False, blank=False)
-    token = models.CharField(max_length=36, null=False, blank=False)
+    token = models.CharField(max_length=40, null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
