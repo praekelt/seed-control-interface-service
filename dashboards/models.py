@@ -42,6 +42,7 @@ class Widget(models.Model):
     )
     SHOW_NULLS = (
         ('omit', 'Omit'),
+        ('zeroize', 'Zeroize'),
     )
     title = models.CharField(max_length=200)
     type_of = models.CharField(max_length=10, choices=WIDGET_TYPES)
