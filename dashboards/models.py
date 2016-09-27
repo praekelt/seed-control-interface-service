@@ -49,8 +49,14 @@ class Widget(models.Model):
     data_from = models.CharField(max_length=20)
     interval = models.CharField(max_length=20)
     nulls = models.CharField(max_length=20, choices=SHOW_NULLS,
-                             null=True, blank=True)
-    data = models.ManyToManyField(WidgetData, blank=True,)
+                             null=False, blank=False, default='zeroize',
+                             help_text="What to do with intervals that have"
+                             " no data.<br/>'Omit' is advised for pie charts, "
+                             "'Zeroize' is advised for all other widget types")
+    data = models.ManyToManyField(
+        WidgetData, blank=True, help_text="Data sources to pull from.<br/>"
+        "'Last' metrics are advised for 'last' widgets. 'Sum' metrics are "
+        "advised for all other widget types.<br/>")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, related_name='widget_created',
