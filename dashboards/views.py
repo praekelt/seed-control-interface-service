@@ -1,5 +1,6 @@
 from .models import UserDashboard, Dashboard, Definition
-from rest_framework import filters, viewsets, mixins, GenericViewSet
+from rest_framework import filters, viewsets, mixins
+from rest_framework.viewsets import GenericViewSet
 from rest_framework.permissions import IsAuthenticated
 from .serializers import (UserDashboardSerializer, DashboardSerializer,
                           DefinitionSerializer)
