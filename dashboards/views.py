@@ -1,7 +1,8 @@
-from .models import UserDashboard, Dashboard
+from .models import UserDashboard, Dashboard, Definition
 from rest_framework import filters, viewsets
 from rest_framework.permissions import IsAuthenticated
-from .serializers import (UserDashboardSerializer, DashboardSerializer)
+from .serializers import (UserDashboardSerializer, DashboardSerializer,
+                          DefinitionSerializer)
 
 
 class DashboardViewSet(viewsets.ReadOnlyModelViewSet):
@@ -24,3 +25,14 @@ class UserDashboardViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserDashboardSerializer
     filter_backends = (filters.DjangoFilterBackend, )
     filter_fields = ('user_id', )
+
+
+class DefinitionViewSet(viewsets.ModelViewSet):
+
+    """
+    API endpoint that allows definition to be created
+    retrieved, updated and deleted
+    """
+    permission_classes = (IsAuthenticated,)
+    queryset = Definition.objects.all()
+    serializer_class = DefinitionSerializer
