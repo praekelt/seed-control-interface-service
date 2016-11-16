@@ -1,5 +1,5 @@
 from .models import UserDashboard, Dashboard, Definition
-from rest_framework import filters, viewsets
+from rest_framework import filters, viewsets, mixins, GenericViewSet
 from rest_framework.permissions import IsAuthenticated
 from .serializers import (UserDashboardSerializer, DashboardSerializer,
                           DefinitionSerializer)
@@ -27,7 +27,12 @@ class UserDashboardViewSet(viewsets.ReadOnlyModelViewSet):
     filter_fields = ('user_id', )
 
 
-class DefinitionViewSet(viewsets.ModelViewSet):
+class DefinitionViewSet(mixins.CreateModelMixin,
+                        mixins.RetrieveModelMixin,
+                        mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin,
+                        mixins.ListModelMixin,
+                        GenericViewSet):
 
     """
     API endpoint that allows definition to be created
