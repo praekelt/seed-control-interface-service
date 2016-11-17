@@ -119,3 +119,22 @@ class UserDashboard(models.Model):
 
     def __str__(self):  # __unicode__ on Python 2
         return "Dashboards for %s" % (self.user_id, )
+
+
+@python_2_unicode_compatible
+class Definition(models.Model):
+
+    """ Definitions page
+    """
+    title = models.CharField(max_length=200)
+    description = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, related_name='definition_created',
+                                   null=True, blank=True)
+    updated_by = models.ForeignKey(User, related_name='definition_updated',
+                                   null=True, blank=True)
+    user = property(lambda self: self.created_by)
+
+    def __str__(self):  # __unicode__ on Python 2
+        return "%s" % self.title

@@ -1,4 +1,5 @@
-from .models import UserDashboard, Dashboard, Widget, WidgetData
+from .models import (UserDashboard, Dashboard,
+                     Widget, WidgetData, Definition)
 from rest_framework import serializers
 
 
@@ -43,3 +44,10 @@ class UserDashboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserDashboard
         fields = ('user_id', 'dashboards', 'default_dashboard')
+
+
+class DefinitionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Definition
+        fields = ('id', 'title', 'description')
