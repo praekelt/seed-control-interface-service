@@ -138,7 +138,3 @@ class Definition(models.Model):
 
     def __str__(self):  # __unicode__ on Python 2
         return "%s" % self.title
-
-    class Meta:
-        verbose_name = 'definition'
-        verbose_name_plural = 'definitions'
