@@ -56,6 +56,7 @@ class QueuePollService(Task):
             poll_service.apply_async(kwargs={"service_id": str(service.id)})
         return "Queued <%s> Service(s) for Polling" % services.count()
 
+
 queue_poll_service = QueuePollService()
 
 
@@ -122,6 +123,7 @@ class PollService(Task):
                  via Celery.',
                 exc_info=True)
 
+
 poll_service = PollService()
 
 
@@ -179,6 +181,7 @@ class GetUserToken(Task):
                  via Celery.',
                 exc_info=True)
 
+
 get_user_token = GetUserToken()
 
 
@@ -192,6 +195,7 @@ class QueueServiceMetricSync(Task):
             service_metric_sync.apply_async(
                 kwargs={"service_id": str(service.id)})
         return "Queued <%s> Service(s) for Metric Sync" % services.count()
+
 
 queue_service_metric_sync = QueueServiceMetricSync()
 
@@ -249,5 +253,6 @@ class ServiceMetricSync(Task):
                 'Soft time limit exceed processing pull of service metrics \
                  via Celery.',
                 exc_info=True)
+
 
 service_metric_sync = ServiceMetricSync()
