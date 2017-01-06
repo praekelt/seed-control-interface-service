@@ -1,0 +1,22 @@
+language: python
+python:
+  - "2.7"
+  - "3.5"
+addons:
+  postgresql: "9.4"
+services:
+  - postgresql
+install:
+  - "pip install -e ."
+  - "pip install -r requirements-dev.txt --use-wheel"
+script:
+  - flake8 .
+  - py.test --ds=seed_control_interface_service.testsettings */tests.py
+deploy:
+  provider: pypi
+  user: praekelt.org
+  password:
+    secure: GXyQOgJXJ+ku4koUlzI9OkKQ2myEjJR9kSOudeWf45ZHp+cBFKQYnj6ePKQke1mrcG3i/jGpuFhGZ97sGi8gRLLbdSEVx53pbg9WMYKOTmBhRZe7JDFcJkIG3j1q3EUJSi6RnT+IdTZQ8cgKGHCXfylKScL9vCX0jxtxK35cjfdO2dr40buxMWMt9h7gpQlIIAwh7h/demUkDLQgMMQlgE6KZAcGQIfCymYCPD5tQWfZqllwj2A5j67xq5S8ZTQdXXNcOo4TN1yNlc0mvlFdfuNUGOqfHh6qrwvquJBjuO1Zxgzkm3T/DkgvXmbqkeJHuOH2i9sVZWmScy0riI7ghbK9W8uQrJMIx7CcjDNwfE+l8ytSgjGzobd7CQglL0FNSIPCJLEbqEyhAlnog/xtDW8677PYz8nzAibRZq/VSIHsyzNSwF6DqxgU+Yl+gXNSXEejTbOdKdv02BKnMDSZDVbrke0yd176XI81XncUGDOhqpZS5V3IRv/NhT75IUno9HjmgJLvjCwQuRMdY1fDAHQxoKEa4nnz6Z5AzdDCwl/PVCdOlX436mZQZan4tjs/jX9ZSstKHG8E6CfjYn1EWOZL7G6Iq5jf+uT5U/BWedye4vobKH26kRVBVR23XFD/80GOIzfCIJTUvHwqhfqoLu93+2lR6qbiR9paEHx8XOY=
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
