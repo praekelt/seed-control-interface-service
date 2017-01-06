@@ -38,8 +38,8 @@ class StatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Status
-        read_only_fields = ('service', 'up', 'created_at')
-        fields = ('id', 'service', 'up', 'created_at')
+        read_only_fields = ('service', 'up', 'created_at', 'result')
+        fields = ('id', 'service', 'up', 'created_at', 'result')
 
 
 class UserServiceTokenSerializer(serializers.ModelSerializer):
