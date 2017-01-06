@@ -6,6 +6,7 @@ from rest_framework import filters, status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.pagination import LimitOffsetPagination
 from .serializers import (UserSerializer, GroupSerializer,
                           ServiceSerializer, StatusSerializer, HookSerializer,
                           UserServiceTokenSerializer,
@@ -61,6 +62,11 @@ class ServiceViewSet(viewsets.ModelViewSet):
         serializer.save(updated_by=self.request.user)
 
 
+class StatusPaginator(LimitOffsetPagination):
+    default_limit = 60
+    max_limit = 60
+
+
 class StatusViewSet(viewsets.ReadOnlyModelViewSet):
 
     """
@@ -72,6 +78,7 @@ class StatusViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
     filter_fields = ('service', 'up',)
     ordering_fields = ('created_at',)
+    pagination_class = StatusPaginator
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user,
