@@ -202,7 +202,6 @@ CELERY_ROUTES = {
 }
 
 METRICS_REALTIME = [
-    'services.downtime.sum',
 ]
 METRICS_SCHEDULED = [
 ]

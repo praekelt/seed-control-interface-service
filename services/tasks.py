@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from go_http.metrics import MetricsApiClient
 
+from seed_control_interface_service import utils
 from .models import Service, Status, UserServiceToken
 from dashboards.models import WidgetData
 
@@ -129,7 +130,8 @@ class PollService(Task):
                 if (not service.up and result['up'] and service.last_up_at):
                     downtime = timezone.now() - service.last_up_at
                     fire_metric.apply_async(kwargs={
-                        "metric_name": 'services.downtime.sum',
+                        "metric_name": 'services.downtime.%s.sum' % (
+                            utils.normalise_string(service.name)),
                         "metric_value": downtime.seconds // 60
                     })
 
@@ -236,11 +238,8 @@ class QueueServiceMetricSync(Task):
             service_metric_sync.apply_async(
                 kwargs={"service_id": str(service.id)})
 
-        available_metrics = []
-        available_metrics.extend(settings.METRICS_REALTIME)
-        available_metrics.extend(settings.METRICS_SCHEDULED)
-
-        for key in available_metrics:
+            key = "services.downtime.%s.sum" % (
+                utils.normalise_string(service.name))
             check = WidgetData.objects.filter(service=None, key=key)
             if check.count() == 0:
                 WidgetData.objects.create(

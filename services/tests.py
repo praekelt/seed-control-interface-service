@@ -579,7 +579,7 @@ class TestServicesApp(AuthenticatedAPITestCase):
         # Check that CI-Service metric is inserted
         widgets = WidgetData.objects.filter(service=None).values_list(
             'key', flat=True)
-        self.assertEqual(list(widgets), ['services.downtime.sum'])
+        self.assertEqual(list(widgets), ['services.downtime.test_service.sum'])
 
 
 class TestMetrics(AuthenticatedAPITestCase):
@@ -642,5 +642,5 @@ class TestMetrics(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(len(responses.calls), 2)
         self.assertEqual(json.loads(responses.calls[1].request.body), {
-            "services.downtime.sum": 65.0
+            "services.downtime.test_service.sum": 65.0
         })
