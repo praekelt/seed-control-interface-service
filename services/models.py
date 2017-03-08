@@ -17,6 +17,7 @@ class Service(models.Model):
     url = models.CharField(max_length=255, null=False, blank=False)
     token = models.CharField(max_length=40, null=False, blank=False)
     up = models.BooleanField(default=False)
+    last_up_at = models.DateTimeField(null=True)
     metadata = JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

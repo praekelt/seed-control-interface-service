@@ -196,7 +196,18 @@ CELERY_ROUTES = {
     'services.tasks.get_user_token': {
         'queue': 'mediumpriority',
     },
+    'services.tasks.fire_metric': {
+        'queue': 'metrics',
+    },
 }
+
+METRICS_REALTIME = [
+    'services.downtime.sum',
+]
+METRICS_SCHEDULED = [
+]
+METRICS_SCHEDULED_TASKS = [
+]
 
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -204,3 +215,6 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERYD_MAX_TASKS_PER_CHILD = 50
 
 djcelery.setup_loader()
+
+METRICS_URL = os.environ.get("METRICS_URL", None)
+METRICS_AUTH_TOKEN = os.environ.get("METRICS_AUTH_TOKEN", "REPLACEME")

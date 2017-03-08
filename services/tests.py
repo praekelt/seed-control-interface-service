@@ -2,16 +2,24 @@ import json
 import uuid
 import responses
 
+from datetime import datetime, timedelta
+
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.conf import settings
+from django.utils import timezone
+from mock import patch
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
+from go_http.metrics import MetricsApiClient
 
 from .models import Status, Service, UserServiceToken
 from dashboards.models import WidgetData
 from .tasks import (poll_service, get_user_token, queue_poll_service,
-                    service_metric_sync, queue_service_metric_sync)
+                    service_metric_sync, queue_service_metric_sync,
+                    fire_metric)
+from . import tasks
 
 
 class APITestCase(TestCase):
@@ -23,8 +31,23 @@ class APITestCase(TestCase):
 
 class AuthenticatedAPITestCase(APITestCase):
 
+    def _replace_get_metric_client(self, session=None):
+        return MetricsApiClient(
+            auth_token=settings.METRICS_AUTH_TOKEN,
+            api_url=settings.METRICS_URL,
+            session=self.session)
+
+    def _restore_get_metric_client(self, session=None):
+        return MetricsApiClient(
+            auth_token=settings.METRICS_AUTH_TOKEN,
+            api_url=settings.METRICS_URL,
+            session=session)
+
     def setUp(self):
         super(AuthenticatedAPITestCase, self).setUp()
+
+        tasks.get_metric_client = self._replace_get_metric_client
+
         self.username = 'testuser'
         self.password = 'testpass'
         self.user = User.objects.create_user(self.username,
@@ -47,8 +70,8 @@ class AuthenticatedAPITestCase(APITestCase):
             HTTP_AUTHORIZATION='Token ' + self.admintoken)
         self.primary_service = self.make_service()
 
-
-class TestServicesApp(AuthenticatedAPITestCase):
+    def tearDown(self):
+        tasks.get_metric_client = self._restore_get_metric_client
 
     def make_service(self, service_data=None):
         if service_data is None:
@@ -60,6 +83,9 @@ class TestServicesApp(AuthenticatedAPITestCase):
             }
         service = Service.objects.create(**service_data)
         return service
+
+
+class TestServicesApp(AuthenticatedAPITestCase):
 
     def make_status(self, status_data=None):
         if status_data is None:
@@ -268,6 +294,7 @@ class TestServicesApp(AuthenticatedAPITestCase):
     @responses.activate
     def test_task_service_poll_down(self):
         # Setup
+        self.session = None
         # mock identity lookup
         responses.add(
             responses.GET,
@@ -288,6 +315,7 @@ class TestServicesApp(AuthenticatedAPITestCase):
             })
 
         # Check
+        self.assertEqual(len(responses.calls), 1)
         self.assertEqual(
             result.get(),
             "Completed healthcheck for <Test Service>")
@@ -302,6 +330,8 @@ class TestServicesApp(AuthenticatedAPITestCase):
     @responses.activate
     def test_task_service_poll_up(self):
         # Setup
+        self.session = None
+        dt = datetime(2017, 1, 1, tzinfo=timezone.utc)
         # mock identity lookup
         responses.add(
             responses.GET,
@@ -316,17 +346,20 @@ class TestServicesApp(AuthenticatedAPITestCase):
         )
 
         # Execute
-        result = poll_service.apply_async(
-            kwargs={
-                "service_id": str(self.primary_service.id)
-            })
+        with patch.object(timezone, 'now', return_value=dt):
+            result = poll_service.apply_async(
+                kwargs={
+                    "service_id": str(self.primary_service.id)
+                })
 
         # Check
+        self.assertEqual(len(responses.calls), 1)
         self.assertEqual(
             result.get(),
             "Completed healthcheck for <Test Service>")
         updated = Service.objects.get(id=str(self.primary_service.id))
         self.assertEqual(updated.up, True)
+        self.assertEqual(updated.last_up_at, dt)
         status = Status.objects.last()
         self.assertEqual(Status.objects.all().count(), 1)
         self.assertEqual(status.up, True)
@@ -542,3 +575,72 @@ class TestServicesApp(AuthenticatedAPITestCase):
             "Queued <1> Service(s) for Metric Sync")
         widget_data = WidgetData.objects.filter(service=self.primary_service)
         self.assertEqual(widget_data.count(), 2)
+
+        # Check that CI-Service metric is inserted
+        widgets = WidgetData.objects.filter(service=None).values_list(
+            'key', flat=True)
+        self.assertEqual(list(widgets), ['services.downtime.sum'])
+
+
+class TestMetrics(AuthenticatedAPITestCase):
+
+    @responses.activate
+    def test_direct_fire(self):
+        # Setup
+        self.session = None
+        responses.add(responses.POST,
+                      "http://metrics-url/metrics/",
+                      json={"foo": "bar"},
+                      status=200, content_type='application/json')
+        # Execute
+        result = fire_metric.apply_async(kwargs={
+            "metric_name": 'foo.last',
+            "metric_value": 1
+        })
+        # Check
+        self.assertEqual(json.loads(responses.calls[0].request.body), {
+            "foo.last": 1.0
+        })
+        self.assertEqual(result.get(),
+                         "Fired metric <foo.last> with value <1.0>")
+
+    @responses.activate
+    def test_downtime_metric(self):
+        # Setup
+        self.session = None
+        dt = datetime(2017, 1, 1, tzinfo=timezone.utc)
+
+        self.primary_service.up = False
+        self.primary_service.last_up_at = dt - timedelta(minutes=65)
+        self.primary_service.save()
+
+        # mock health lookup
+        responses.add(
+            responses.GET,
+            'http://example.org/api/health/',
+            json={
+                "up": True,
+                "result": {
+                    "database": "Response in <0.1> seconds"
+                }
+            },
+            status=200, content_type='application/json',
+        )
+
+        responses.add(responses.POST,
+                      "http://metrics-url/metrics/",
+                      json={"foo": "bar"},
+                      status=200, content_type='application/json')
+
+        # Execute
+        with patch.object(timezone, 'now', return_value=dt):
+            poll_service.apply_async(
+                kwargs={
+                    "service_id": str(self.primary_service.id)
+                })
+
+        # Check
+        self.assertEqual(len(responses.calls), 2)
+        self.assertEqual(json.loads(responses.calls[1].request.body), {
+            "services.downtime.sum": 65.0
+        })
