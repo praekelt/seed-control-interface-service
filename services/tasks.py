@@ -127,8 +127,9 @@ class PollService(Task):
             try:
                 result = status.json()
 
-                if (not service.up and result['up'] and service.last_up_at):
-                    downtime = timezone.now() - service.last_up_at
+                last_up_at = service.get_last_up_time()
+                if (not service.up and result['up'] and last_up_at):
+                    downtime = timezone.now() - last_up_at
                     fire_metric.apply_async(kwargs={
                         "metric_name": 'services.downtime.%s.sum' % (
                             utils.normalise_string(service.name)),
@@ -136,8 +137,6 @@ class PollService(Task):
                     })
 
                 service.up = result["up"]
-                if result["up"]:
-                    service.last_up_at = timezone.now()
                 service.save()
                 Status.objects.create(
                     service=service,

@@ -17,7 +17,6 @@ class Service(models.Model):
     url = models.CharField(max_length=255, null=False, blank=False)
     token = models.CharField(max_length=40, null=False, blank=False)
     up = models.BooleanField(default=False)
-    last_up_at = models.DateTimeField(null=True)
     metadata = JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -29,6 +28,12 @@ class Service(models.Model):
 
     def __str__(self):  # __unicode__ on Python 2
         return str(self.name)
+
+    def get_last_up_time(self):
+        last_up = self.service_statuses.filter(up=True).\
+            order_by('-created_at').first()
+        if last_up:
+            return last_up.created_at
 
 
 @python_2_unicode_compatible

@@ -84,9 +84,6 @@ class AuthenticatedAPITestCase(APITestCase):
         service = Service.objects.create(**service_data)
         return service
 
-
-class TestServicesApp(AuthenticatedAPITestCase):
-
     def make_status(self, status_data=None):
         if status_data is None:
             status_data = {
@@ -95,6 +92,9 @@ class TestServicesApp(AuthenticatedAPITestCase):
             }
         status = Status.objects.create(**status_data)
         return status
+
+
+class TestServicesApp(AuthenticatedAPITestCase):
 
     def make_user_service_token(self, user_id, service):
         user_service_token = {
@@ -359,7 +359,6 @@ class TestServicesApp(AuthenticatedAPITestCase):
             "Completed healthcheck for <Test Service>")
         updated = Service.objects.get(id=str(self.primary_service.id))
         self.assertEqual(updated.up, True)
-        self.assertEqual(updated.last_up_at, dt)
         status = Status.objects.last()
         self.assertEqual(Status.objects.all().count(), 1)
         self.assertEqual(status.up, True)
@@ -611,8 +610,23 @@ class TestMetrics(AuthenticatedAPITestCase):
         dt = datetime(2017, 1, 1, tzinfo=timezone.utc)
 
         self.primary_service.up = False
-        self.primary_service.last_up_at = dt - timedelta(minutes=65)
         self.primary_service.save()
+
+        # last up status
+        status = self.make_status()
+        status.created_at = dt - timedelta(minutes=65)
+        status.save()
+
+        # up status that's a little bit older
+        status = self.make_status()
+        status.created_at = dt - timedelta(minutes=90)
+        status.save()
+
+        # newer down status
+        status = self.make_status()
+        status.created_at = dt - timedelta(minutes=20)
+        status.up = False
+        status.save()
 
         # mock health lookup
         responses.add(
