@@ -127,14 +127,15 @@ class PollService(Task):
             try:
                 result = status.json()
 
-                last_up_at = service.get_last_up_time()
-                if (not service.up and result['up'] and last_up_at):
-                    downtime = timezone.now() - last_up_at
-                    fire_metric.apply_async(kwargs={
-                        "metric_name": 'services.downtime.%s.sum' % (
-                            utils.normalise_string(service.name)),
-                        "metric_value": downtime.seconds // 60
-                    })
+                if (not service.up and result['up']):
+                    last_up_at = service.get_last_up_time()
+                    if last_up_at:
+                        downtime = timezone.now() - last_up_at
+                        fire_metric.apply_async(kwargs={
+                            "metric_name": 'services.downtime.%s.sum' % (
+                                utils.normalise_string(service.name)),
+                            "metric_value": downtime.seconds // 60
+                        })
 
                 service.up = result["up"]
                 service.save()
@@ -240,7 +241,7 @@ class QueueServiceMetricSync(Task):
             key = "services.downtime.%s.sum" % (
                 utils.normalise_string(service.name))
             check = WidgetData.objects.filter(service=None, key=key)
-            if check.count() == 0:
+            if not check.exists():
                 WidgetData.objects.create(
                     key=key,
                     title="TEMP - Pending update"
@@ -289,7 +290,7 @@ class ServiceMetricSync(Task):
             if "metrics_available" in result:
                 for key in result["metrics_available"]:
                     check = WidgetData.objects.filter(service=service, key=key)
-                    if check.count() == 0:
+                    if not check.exists():
                         WidgetData.objects.create(
                             service=service,
                             key=key,
