@@ -7,7 +7,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from celery.task import Task
 from celery.utils.log import get_task_logger
 from celery.exceptions import SoftTimeLimitExceeded
+from django.utils import timezone
 
+from go_http.metrics import MetricsApiClient
+
+from seed_control_interface_service import utils
 from .models import Service, Status, UserServiceToken
 from dashboards.models import WidgetData
 
@@ -44,6 +48,33 @@ def deliver_hook_wrapper(target, payload, instance, hook):
     kwargs = dict(target=target, payload=payload,
                   instance_id=instance_id, hook_id=hook.id)
     DeliverHook.apply_async(kwargs=kwargs)
+
+
+def get_metric_client(session=None):
+    return MetricsApiClient(
+        auth_token=settings.METRICS_AUTH_TOKEN,
+        api_url=settings.METRICS_URL,
+        session=session)
+
+
+class FireMetric(Task):
+
+    """ Fires a metric using the MetricsApiClient
+    """
+    name = "message_sender.tasks.fire_metric"
+
+    def run(self, metric_name, metric_value, session=None, **kwargs):
+        metric_value = float(metric_value)
+        metric = {
+            metric_name: metric_value
+        }
+        metric_client = get_metric_client(session=session)
+        metric_client.fire(metric)
+        return "Fired metric <%s> with value <%s>" % (
+            metric_name, metric_value)
+
+
+fire_metric = FireMetric()
 
 
 class QueuePollService(Task):
@@ -95,6 +126,17 @@ class PollService(Task):
             status = self.get_health(service.url, service.token)
             try:
                 result = status.json()
+
+                if (not service.up and result['up']):
+                    last_up_at = service.get_last_up_time()
+                    if last_up_at:
+                        downtime = timezone.now() - last_up_at
+                        fire_metric.apply_async(kwargs={
+                            "metric_name": 'services.downtime.%s.sum' % (
+                                utils.normalise_string(service.name)),
+                            "metric_value": downtime.seconds // 60
+                        })
+
                 service.up = result["up"]
                 service.save()
                 Status.objects.create(
@@ -190,10 +232,21 @@ class QueueServiceMetricSync(Task):
         """
         Queues all services to be polled for metrics. Should be run via beat.
         """
+
         services = Service.objects.all()
         for service in services:
             service_metric_sync.apply_async(
                 kwargs={"service_id": str(service.id)})
+
+            key = "services.downtime.%s.sum" % (
+                utils.normalise_string(service.name))
+            check = WidgetData.objects.filter(service=None, key=key)
+            if not check.exists():
+                WidgetData.objects.create(
+                    key=key,
+                    title="TEMP - Pending update"
+                )
+
         return "Queued <%s> Service(s) for Metric Sync" % services.count()
 
 
@@ -237,7 +290,7 @@ class ServiceMetricSync(Task):
             if "metrics_available" in result:
                 for key in result["metrics_available"]:
                     check = WidgetData.objects.filter(service=service, key=key)
-                    if check.count() == 0:
+                    if not check.exists():
                         WidgetData.objects.create(
                             service=service,
                             key=key,
