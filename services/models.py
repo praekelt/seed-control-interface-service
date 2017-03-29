@@ -29,6 +29,12 @@ class Service(models.Model):
     def __str__(self):  # __unicode__ on Python 2
         return str(self.name)
 
+    def get_last_up_time(self):
+        last_up = self.service_statuses.filter(up=True).\
+            order_by('-created_at').first()
+        if last_up:
+            return last_up.created_at
+
 
 @python_2_unicode_compatible
 class Status(models.Model):
