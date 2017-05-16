@@ -7,4 +7,4 @@ RUN pip install -e .
 
 ENV DJANGO_SETTINGS_MODULE "seed_control_interface_service.settings"
 RUN python manage.py collectstatic --noinput
-ENV ["seed_control_interface_service.wsgi:application"]
+CMD ["seed_control_interface_service.wsgi:application"]
