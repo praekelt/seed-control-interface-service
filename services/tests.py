@@ -12,7 +12,7 @@ from mock import patch
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
-from go_http.metrics import MetricsApiClient
+from seed_services_client.metrics import MetricsApiClient
 
 from .models import Status, Service, UserServiceToken
 from dashboards.models import WidgetData
@@ -33,14 +33,14 @@ class AuthenticatedAPITestCase(APITestCase):
 
     def _replace_get_metric_client(self, session=None):
         return MetricsApiClient(
-            auth_token=settings.METRICS_AUTH_TOKEN,
-            api_url=settings.METRICS_URL,
+            url=settings.METRICS_URL,
+            auth=(settings.METRICS_AUTH_USER, settings.METRICS_AUTH_PASSWORD),
             session=self.session)
 
     def _restore_get_metric_client(self, session=None):
         return MetricsApiClient(
-            auth_token=settings.METRICS_AUTH_TOKEN,
-            api_url=settings.METRICS_URL,
+            url=settings.METRICS_URL,
+            auth=(settings.METRICS_AUTH_USER, settings.METRICS_AUTH_PASSWORD),
             session=session)
 
     def setUp(self):
