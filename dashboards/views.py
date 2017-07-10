@@ -2,8 +2,13 @@ from .models import UserDashboard, Dashboard, Definition
 from rest_framework import filters, viewsets, mixins
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import CursorPagination
 from .serializers import (UserDashboardSerializer, DashboardSerializer,
                           DefinitionSerializer)
+
+
+class CreatedAtCursorPagination(CursorPagination):
+    ordering = "-created_at"
 
 
 class DashboardViewSet(viewsets.ReadOnlyModelViewSet):
@@ -14,6 +19,7 @@ class DashboardViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = Dashboard.objects.all()
     serializer_class = DashboardSerializer
+    pagination_class = CreatedAtCursorPagination
 
 
 class UserDashboardViewSet(viewsets.ReadOnlyModelViewSet):
@@ -26,6 +32,7 @@ class UserDashboardViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserDashboardSerializer
     filter_backends = (filters.DjangoFilterBackend, )
     filter_fields = ('user_id', )
+    pagination_class = CreatedAtCursorPagination
 
 
 class DefinitionViewSet(mixins.CreateModelMixin,
@@ -42,3 +49,4 @@ class DefinitionViewSet(mixins.CreateModelMixin,
     permission_classes = (IsAuthenticated,)
     queryset = Definition.objects.all()
     serializer_class = DefinitionSerializer
+    pagination_class = CreatedAtCursorPagination
