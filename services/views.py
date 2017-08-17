@@ -6,11 +6,19 @@ from rest_framework import filters, status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.pagination import CursorPagination
 from .serializers import (UserSerializer, GroupSerializer,
                           ServiceSerializer, StatusSerializer, HookSerializer,
                           UserServiceTokenSerializer,
                           UserTokenRequestSerializer)
+
+
+class CreatedAtCursorPagination(CursorPagination):
+    ordering = "-created_at"
+
+
+class IdCursorPagination(CursorPagination):
+    ordering = "-id"
 
 
 class HookViewSet(viewsets.ModelViewSet):
@@ -33,6 +41,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAdminUser,)
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    pagination_class = IdCursorPagination
 
 
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
@@ -43,6 +52,7 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAdminUser,)
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    pagination_class = IdCursorPagination
 
 
 class ServiceViewSet(viewsets.ModelViewSet):
@@ -53,6 +63,7 @@ class ServiceViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
+    pagination_class = CreatedAtCursorPagination
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user,
@@ -62,9 +73,8 @@ class ServiceViewSet(viewsets.ModelViewSet):
         serializer.save(updated_by=self.request.user)
 
 
-class StatusPaginator(LimitOffsetPagination):
-    default_limit = 60
-    max_limit = 60
+class StatusPaginator(CreatedAtCursorPagination):
+    page_size = 60
 
 
 class StatusViewSet(viewsets.ReadOnlyModelViewSet):
@@ -78,6 +88,7 @@ class StatusViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
     filter_fields = ('service', 'up',)
     ordering_fields = ('created_at',)
+    ordering = ('created_at',)
     pagination_class = StatusPaginator
 
     def perform_create(self, serializer):
@@ -98,6 +109,7 @@ class UserServiceTokenViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserServiceTokenSerializer
     filter_backends = (filters.DjangoFilterBackend, )
     filter_fields = ('service', 'user_id', 'email', )
+    pagination_class = CreatedAtCursorPagination
 
 
 class UserServiceTokenTriggerView(APIView):
