@@ -8,7 +8,12 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.conf import settings
 from django.utils import timezone
-from mock import patch
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
