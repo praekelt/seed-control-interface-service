@@ -49,7 +49,7 @@ setup(
         'pytz==2015.7',
         'django-rest-hooks==1.3.1',
         'drfdocs==0.0.11',
-        'seed-services-client>=0.21.0',
+        'seed-services-client==0.31.0',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
