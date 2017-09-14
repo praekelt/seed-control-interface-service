@@ -101,6 +101,78 @@ class AuthenticatedAPITestCase(APITestCase):
 
 class TestServicesApp(AuthenticatedAPITestCase):
 
+    def test_list_user(self):
+
+        response = self.adminclient.get('/api/v1/user/')
+
+        body = response.json()
+        self.assertEqual(len(body['results']), 2)
+
+    def test_list_group(self):
+
+        response = self.adminclient.get('/api/v1/group/')
+
+        body = response.json()
+        self.assertEqual(len(body['results']), 0)
+
+    def test_list_service(self):
+
+        response = self.adminclient.get('/api/v1/service/')
+
+        body = response.json()
+        self.assertEqual(len(body['results']), 1)
+
+    def test_list_webhook(self):
+
+        response = self.adminclient.get('/api/v1/webhook/')
+
+        body = response.json()
+        self.assertEqual(len(body['results']), 0)
+
+    def test_list_pagination_one_page(self):
+        response = self.client.get('/api/v1/service/')
+
+        body = response.json()
+        self.assertEqual(len(body['results']), 1)
+        self.assertEqual(
+            body['results'][0]['id'], str(self.primary_service.id))
+        self.assertIsNone(body['previous'])
+        self.assertIsNone(body['next'])
+
+    def test_list_pagination_two_pages(self):
+        services = [str(self.primary_service.id)]
+        for i in range(2):
+            services.append(str(self.make_service().id))
+
+        # Test first page
+        response = self.client.get('/api/v1/service/')
+
+        body = response.json()
+        self.assertEqual(len(body['results']), 2)
+        self.assertEqual(body['results'][0]['id'], services[2])
+        self.assertEqual(body['results'][1]['id'], services[1])
+        self.assertIsNone(body['previous'])
+        self.assertIsNotNone(body['next'])
+
+        # Test next page
+        response = self.client.get(body['next'])
+
+        body = response.json()
+        self.assertEqual(len(body['results']), 1)
+        self.assertEqual(body['results'][0]['id'], services[0])
+        self.assertIsNotNone(body['previous'])
+        self.assertIsNone(body['next'])
+
+        # Test going back to previous page works
+        response = self.client.get(body['previous'])
+
+        body = response.json()
+        self.assertEqual(len(body['results']), 2)
+        self.assertEqual(body['results'][0]['id'], services[2])
+        self.assertEqual(body['results'][1]['id'], services[1])
+        self.assertIsNone(body['previous'])
+        self.assertIsNotNone(body['next'])
+
     def make_user_service_token(self, user_id, service):
         user_service_token = {
             "user_id": user_id,
@@ -153,6 +225,19 @@ class TestServicesApp(AuthenticatedAPITestCase):
 
         self.assertEqual(response.status_code,
                          status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_list_status_limit(self):
+        for i in range(100):
+            self.make_status()
+
+        response = self.client.get('/api/v1/status/',
+                                   content_type='application/json')
+
+        self.assertEqual(response.status_code,
+                         status.HTTP_200_OK)
+
+        results = response.json()["results"]
+        self.assertEqual(len(results), 60)
 
     def test_list_status_unfiltered(self):
         self.make_status()
