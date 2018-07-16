@@ -11,15 +11,10 @@ from seed_control_interface_service import utils
 from .models import AuditLog
 
 
-# def override_get_today():
-#     return datetime.datetime.strptime("20150817", "%Y%m%d")
-
-
 class APITestCase(TestCase):
 
     def setUp(self):
         self.normalclient = APIClient()
-        # utils.get_today = override_get_today
 
 
 class AuthenticatedAPITestCase(APITestCase):
