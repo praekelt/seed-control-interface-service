@@ -117,12 +117,12 @@ class PollService(Task):
         """
         Retrieve a status from remote service. Set the up/down state and log.
         """
-        l = self.get_logger(**kwargs)
+        log = self.get_logger(**kwargs)
 
-        l.info("Loading Service for healthcheck")
+        log.info("Loading Service for healthcheck")
         try:
             service = Service.objects.get(id=service_id)
-            l.info("Getting health for <%s>" % (service.name))
+            log.info("Getting health for <%s>" % (service.name))
             status = self.get_health(service.url, service.token)
             try:
                 result = status.json()
@@ -144,10 +144,10 @@ class PollService(Task):
                     up=result["up"],
                     result=result["result"]
                 )
-                l.info("Service <%s> up: <%s>" % (service.name, service.up))
-            except:
+                log.info("Service <%s> up: <%s>" % (service.name, service.up))
+            except Exception:
                 # can't decode means there was not a valid response
-                l.info("Failed to parse response from <%s>" % (service.name))
+                log.info("Failed to parse response from <%s>" % (service.name))
                 Status.objects.create(
                     service=service,
                     up=False,
@@ -196,12 +196,12 @@ class GetUserToken(Task):
         """
         Create and Retrieve a token from remote service. Save to DB.
         """
-        l = self.get_logger(**kwargs)
+        log = self.get_logger(**kwargs)
 
-        l.info("Loading Service for token creation")
+        log.info("Loading Service for token creation")
         try:
             service = Service.objects.get(id=service_id)
-            l.info("Getting token for <%s> on <%s>" % (email, service.name))
+            log.info("Getting token for <%s> on <%s>" % (email, service.name))
             response = self.create_token(service.url, email, service.token)
             try:
                 result = response.json()
@@ -209,10 +209,11 @@ class GetUserToken(Task):
                     service=service, user_id=user_id, email=email)
                 ust.token = result["token"]
                 ust.save()
-                l.info("Token saved for <%s> on <%s>" % (email, service.name))
-            except:
+                log.info(
+                    "Token saved for <%s> on <%s>" % (email, service.name))
+            except Exception:
                 # can't decode means there was not a valid response
-                l.info("Failed to parse response from <%s>" % (service.name))
+                log.info("Failed to parse response from <%s>" % (service.name))
             return "Completed getting token for <%s>" % (email)
         except ObjectDoesNotExist:
             logger.error('Missing Service', exc_info=True)
