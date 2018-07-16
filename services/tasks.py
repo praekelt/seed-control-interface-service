@@ -280,12 +280,12 @@ class ServiceMetricSync(Task):
         """
         Retrieve a list of metrics. Ensure they are set as metric data sources.
         """
-        l = self.get_logger(**kwargs)
+        log = self.get_logger(**kwargs)
 
-        l.info("Loading Service for metric sync")
+        log.info("Loading Service for metric sync")
         try:
             service = Service.objects.get(id=service_id)
-            l.info("Getting metrics for <%s>" % (service.name))
+            log.info("Getting metrics for <%s>" % (service.name))
             metrics = self.get_metrics(service.url, service.token)
             result = metrics.json()
             if "metrics_available" in result:
@@ -297,7 +297,7 @@ class ServiceMetricSync(Task):
                             key=key,
                             title="TEMP - Pending update"
                         )
-                        l.info("Add WidgetData for <%s>" % (key,))
+                        log.info("Add WidgetData for <%s>" % (key,))
             return "Completed metric sync for <%s>" % (service.name)
         except ObjectDoesNotExist:
             logger.error('Missing Service', exc_info=True)
