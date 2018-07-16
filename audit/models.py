@@ -28,4 +28,6 @@ class AuditLog(models.Model):
     detail = models.TextField(null=True)
 
     def __str__(self):
-        return '{}: {} {}'.format(str(self.action_at), self.action, self.model)
+        return '{}: {} - {}'.format(
+            str(self.action_at), self.action.get_display_name(),
+            self.action_by.username)
