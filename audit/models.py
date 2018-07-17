@@ -18,8 +18,7 @@ class AuditLog(models.Model):
     )
 
     action_at = models.DateTimeField(auto_now_add=True)
-    action_by = models.ForeignKey(User, related_name='auditlog_action_by',
-                                  null=False, blank=False)
+    action_by = models.IntegerField(null=False, blank=False)
     action = models.CharField(max_length=10, null=False, blank=False,
                               choices=ACTION_CHOICES)
     model = models.CharField(max_length=100, null=False, blank=False)

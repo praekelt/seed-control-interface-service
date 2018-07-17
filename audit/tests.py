@@ -44,7 +44,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
             "subscription_id": "88d52f65-2222-4f5f-99ad-f60f8eb3fc21",
             "model": "subscription",
             "detail": "created subscription",
-            "action_by_id": self.normaluser.id
+            "action_by": self.normaluser.id
         }
         object_data.update(data)
         return AuditLog.objects.create(**object_data)
@@ -60,6 +60,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
 
         post_data = {
             "action": "c",
+            "action_by": 3,
             "identity_id": identity_id,
             "subscription_id": subscription_id,
             "model": "subscription",
@@ -74,7 +75,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         audit = AuditLog.objects.last()
-        self.assertEqual(audit.action_by, self.normaluser)
+        self.assertEqual(audit.action_by, 3)
         self.assertEqual(audit.action, AuditLog.CREATE)
         self.assertEqual(str(audit.identity_id), identity_id)
         self.assertEqual(str(audit.subscription_id), subscription_id)
@@ -93,6 +94,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
 
         post_data = {
             "action": "Create",
+            "action_by": 3,
             "identity_id": identity_id,
             "subscription_id": subscription_id,
             "model": "subscription",
@@ -107,7 +109,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         audit = AuditLog.objects.last()
-        self.assertEqual(audit.action_by, self.normaluser)
+        self.assertEqual(audit.action_by, 3)
         self.assertEqual(audit.action, AuditLog.CREATE)
         self.assertEqual(str(audit.identity_id), identity_id)
         self.assertEqual(str(audit.subscription_id), subscription_id)
@@ -132,6 +134,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
         self.assertEqual(utils.json_decode(response.content),
                          {"model": ["This field is required."],
                           "action": ["This field is required."],
+                          "action_by": ["This field is required."],
                           "identity_id": ["This field is required."]})
 
         self.assertEqual(AuditLog.objects.count(), 0)
@@ -150,7 +153,8 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
             "identity_id": identity_id,
             "subscription_id": subscription_id,
             "model": "subscription",
-            "detail": "created subscription"
+            "detail": "created subscription",
+            "action_by": 1
         }
         # Execute
         response = self.normalclient.post(
@@ -199,7 +203,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
         # Check
         results = utils.json_decode(response.content)["results"]
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["action_by_name"], "testnormaluser")
+        self.assertEqual(results[0]["action_by"], self.normaluser.id)
         self.assertEqual(results[0]["action_name"], "Create")
         self.assertEqual(results[0]["identity_id"], identity_id)
         self.assertEqual(results[0]["subscription_id"], subscription_id)
@@ -225,7 +229,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
         # Check
         results = utils.json_decode(response.content)["results"]
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["action_by_name"], "testnormaluser")
+        self.assertEqual(results[0]["action_by"], self.normaluser.id)
         self.assertEqual(results[0]["action_name"], "Create")
         self.assertEqual(results[0]["identity_id"], identity_id)
         self.assertEqual(results[0]["subscription_id"], subscription_id)
