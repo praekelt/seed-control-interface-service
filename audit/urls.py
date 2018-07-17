@@ -1,5 +1,4 @@
-from django.conf.urls import url, include
-from rest_framework import routers
+from django.conf.urls import url
 from . import views
 
 # Wire up our API using automatic URL routing.
