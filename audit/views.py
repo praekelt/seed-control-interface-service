@@ -26,4 +26,10 @@ class AuditLogList(generics.ListCreateAPIView):
 
     def post(self, request, *args, **kwargs):
         request.data['action_by'] = self.request.user.id
+
+        if 'action' in request.data:
+            action_choices = dict((y, x) for x, y in AuditLog.ACTION_CHOICES)
+            request.data['action'] = action_choices.get(
+                request.data['action'], request.data['action'])
+
         return super(AuditLogList, self).post(request, *args, **kwargs)

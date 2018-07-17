@@ -39,12 +39,12 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
 
     def create_audit_log(self, data={}):
         object_data = {
-          "action": AuditLog.CREATE,
-          "identity_id": "88d52f65-1111-4f5f-99ad-f60f8eb3fc21",
-          "subscription_id": "88d52f65-2222-4f5f-99ad-f60f8eb3fc21",
-          "model": "subscription",
-          "detail": "created subscription",
-          "action_by_id": self.normaluser.id
+            "action": AuditLog.CREATE,
+            "identity_id": "88d52f65-1111-4f5f-99ad-f60f8eb3fc21",
+            "subscription_id": "88d52f65-2222-4f5f-99ad-f60f8eb3fc21",
+            "model": "subscription",
+            "detail": "created subscription",
+            "action_by_id": self.normaluser.id
         }
         object_data.update(data)
         return AuditLog.objects.create(**object_data)
@@ -59,7 +59,40 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
         subscription_id = "88d52f65-2222-4f5f-99ad-f60f8eb3fc21"
 
         post_data = {
-            "action": AuditLog.CREATE,
+            "action": "c",
+            "identity_id": identity_id,
+            "subscription_id": subscription_id,
+            "model": "subscription",
+            "detail": "created subscription"
+        }
+        # Execute
+        response = self.normalclient.post(
+            '/api/v1/auditlog/',
+            json.dumps(post_data),
+            content_type='application/json')
+        # Check
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        audit = AuditLog.objects.last()
+        self.assertEqual(audit.action_by, self.normaluser)
+        self.assertEqual(audit.action, AuditLog.CREATE)
+        self.assertEqual(str(audit.identity_id), identity_id)
+        self.assertEqual(str(audit.subscription_id), subscription_id)
+        self.assertEqual(audit.model, "subscription")
+        self.assertEqual(audit.detail, "created subscription")
+
+    def test_create_audit_log_display_name(self):
+        """
+        Posting a valid payload to the auditlog endpoint should create a
+        auditlog object. The "action" field should be able to accept the
+        display name as a value.
+        """
+        # Setup
+        identity_id = "88d52f65-1111-4f5f-99ad-f60f8eb3fc21"
+        subscription_id = "88d52f65-2222-4f5f-99ad-f60f8eb3fc21"
+
+        post_data = {
+            "action": "Create",
             "identity_id": identity_id,
             "subscription_id": subscription_id,
             "model": "subscription",
@@ -113,11 +146,11 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
         subscription_id = "88d52f65-2222-4f5f-99ad-f60f8eb3fc21"
 
         post_data = {
-          "action": "x",
-          "identity_id": identity_id,
-          "subscription_id": subscription_id,
-          "model": "subscription",
-          "detail": "created subscription"
+            "action": "x",
+            "identity_id": identity_id,
+            "subscription_id": subscription_id,
+            "model": "subscription",
+            "detail": "created subscription"
         }
         # Execute
         response = self.normalclient.post(
@@ -136,7 +169,7 @@ class TestAuditLogAPI(AuthenticatedAPITestCase):
         When a PATCH request is sent to the endpoint it should fail.
         """
         post_data = {
-          "action": "x",
+            "action": "x",
         }
         # Execute
         response = self.normalclient.patch(
