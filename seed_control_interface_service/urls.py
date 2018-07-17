@@ -16,4 +16,5 @@ urlpatterns = patterns(
     url(r'^docs/', include('rest_framework_docs.urls')),
     url(r'^', include('services.urls')),
     url(r'^', include('dashboards.urls')),
+    url(r'^', include('audit.urls')),
 )

@@ -52,7 +52,7 @@ INSTALLED_APPS = (
     # us
     'services',
     'dashboards',
-
+    'audit',
 )
 
 MIDDLEWARE_CLASSES = (
