@@ -1,5 +1,6 @@
 from .models import UserDashboard, Dashboard, Definition
-from rest_framework import filters, viewsets, mixins
+import django_filters.rest_framework as filters
+from rest_framework import viewsets, mixins
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import CursorPagination
