@@ -1,4 +1,4 @@
-from seed_control_interface_service.settings import *  # flake8: noqa
+from seed_control_interface_service.settings import *  # noqa
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'TESTSEKRET'
@@ -16,4 +16,4 @@ METRICS_URL = "http://metrics-url"
 METRICS_AUTH_TOKEN = "REPLACEME"
 
 # REST Framework conf defaults
-REST_FRAMEWORK['PAGE_SIZE'] = 2
+REST_FRAMEWORK['PAGE_SIZE'] = 2  # noqa
