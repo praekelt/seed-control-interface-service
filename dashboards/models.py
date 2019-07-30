@@ -11,14 +11,20 @@ class WidgetData(models.Model):
     """
     title = models.CharField(max_length=200)
     key = models.CharField(max_length=200)
-    service = models.ForeignKey(Service, related_name='services_metrics',
-                                null=True, blank=True)
+    service = models.ForeignKey(
+        Service, related_name='services_metrics', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, related_name='widgetdata_created',
-                                   null=True, blank=True)
-    updated_by = models.ForeignKey(User, related_name='widgetdata_updated',
-                                   null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, related_name='widgetdata_created', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+    updated_by = models.ForeignKey(
+        User, related_name='widgetdata_updated', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     user = property(lambda self: self.created_by)
 
     class Meta:
@@ -59,10 +65,14 @@ class Widget(models.Model):
         "advised for all other widget types.<br/>")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, related_name='widget_created',
-                                   null=True, blank=True)
-    updated_by = models.ForeignKey(User, related_name='widget_updated',
-                                   null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, related_name='widget_created', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+    updated_by = models.ForeignKey(
+        User, related_name='widget_updated', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     user = property(lambda self: self.created_by)
 
     class Meta:
@@ -82,10 +92,14 @@ class Dashboard(models.Model):
     widgets = models.ManyToManyField(Widget, blank=True,)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, related_name='dashboard_created',
-                                   null=True, blank=True)
-    updated_by = models.ForeignKey(User, related_name='dashboard_updated',
-                                   null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, related_name='dashboard_created', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+    updated_by = models.ForeignKey(
+        User, related_name='dashboard_updated', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     user = property(lambda self: self.created_by)
 
     def __str__(self):  # __unicode__ on Python 2
@@ -104,13 +118,18 @@ class UserDashboard(models.Model):
     # the seed auth api user this dashboard is a profile for
     user_id = models.IntegerField(null=False, blank=False)
     dashboards = models.ManyToManyField(Dashboard, related_name='dashboards')
-    default_dashboard = models.ForeignKey(Dashboard, related_name='default')
+    default_dashboard = models.ForeignKey(
+        Dashboard, related_name='default', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, related_name='userdashboard_created',
-                                   null=True, blank=True)
-    updated_by = models.ForeignKey(User, related_name='userdashboard_updated',
-                                   null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, related_name='userdashboard_created', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+    updated_by = models.ForeignKey(
+        User, related_name='userdashboard_updated', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     user = property(lambda self: self.created_by)
 
     class Meta:
@@ -130,10 +149,14 @@ class Definition(models.Model):
     description = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, related_name='definition_created',
-                                   null=True, blank=True)
-    updated_by = models.ForeignKey(User, related_name='definition_updated',
-                                   null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, related_name='definition_created', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+    updated_by = models.ForeignKey(
+        User, related_name='definition_updated', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     user = property(lambda self: self.created_by)
 
     def __str__(self):  # __unicode__ on Python 2

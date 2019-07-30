@@ -1,8 +1,10 @@
 from django.contrib.auth.models import User, Group
 from .models import Service, Status, UserServiceToken
 from .tasks import get_user_token
+from django_filters import rest_framework as filters
 from rest_hooks.models import Hook
-from rest_framework import filters, status, viewsets
+from rest_framework import status, viewsets
+from rest_framework.filters import OrderingFilter
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -85,7 +87,7 @@ class StatusViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = Status.objects.all()
     serializer_class = StatusSerializer
-    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
+    filter_backends = (OrderingFilter, filters.DjangoFilterBackend)
     filter_fields = ('service', 'up',)
     ordering_fields = ('created_at',)
     ordering = ('created_at',)

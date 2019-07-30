@@ -21,9 +21,9 @@ class Service(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, related_name='services_created',
-                                   null=True)
+                                   null=True, on_delete=models.SET_NULL)
     updated_by = models.ForeignKey(User, related_name='services_updated',
-                                   null=True)
+                                   null=True, on_delete=models.SET_NULL)
     user = property(lambda self: self.created_by)
 
     def __str__(self):  # __unicode__ on Python 2
@@ -43,7 +43,9 @@ class Status(models.Model):
     Base Status model, holds results of service pings
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    service = models.ForeignKey(Service, related_name='service_statuses')
+    service = models.ForeignKey(
+        Service, related_name='service_statuses', on_delete=models.CASCADE
+    )
     up = models.BooleanField(default=False)
     result = JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -60,7 +62,9 @@ class UserServiceToken(models.Model):
     Holds seed-auth-api user tokens from seed services for CLI to use
     user_id is consistent in auth-api, email might change
     """
-    service = models.ForeignKey(Service, related_name='service_users')
+    service = models.ForeignKey(
+        Service, related_name='service_users', on_delete=models.CASCADE
+    )
     user_id = models.IntegerField(null=False, blank=False)
     email = models.CharField(max_length=30, null=False, blank=False)
     token = models.CharField(max_length=40, null=False, blank=False)
